@@ -48,12 +48,12 @@ the literals and drop everything else."
   (should (equal (niori-pdf-num 100.0) "100")))
 
 (ert-deftest niori-pdf-page-font-dict-dedupe ()
-  "The shared resource dict lists each resource name once even when
-the same font object is registered under several spec keys (a PDF/A
+  "The same font object is registered under several spec keys (a PDF/A
 base-14 substitution registers it under the base-14 name and under
 the substituted file)."
+  (skip-unless niori-pdf-tests--ttf)
   (let* ((doc (niori-pdf-make-document))
-         (path "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+         (path niori-pdf-tests--ttf)
          (f (niori-pdf-get-font doc path)))
     ;; simulate the PDF/A double registration: one object, two keys
     (push (cons "Helvetica" f) (niori-pdf-document-fonts doc))
@@ -154,11 +154,10 @@ the substituted file)."
     (should (= (niori-pdf-text-width "W" font 10) 9.44))))
 
 (ert-deftest niori-pdf-text-width-ttf ()
-  (skip-unless (file-exists-p
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+  (skip-unless niori-pdf-tests--ttf)
   (let* ((doc (niori-pdf-make-document))
          (font (niori-pdf-get-font
-                doc "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+                doc niori-pdf-tests--ttf))
          (w (niori-pdf-text-width "HH" font 10)))
     (should (> w 0))
     (should (< (abs (- w 15.0390625)) 0.1))))
@@ -222,10 +221,9 @@ Rows alternate between bytes #x61 (a) and #x62 (b), filter 0."
 ;;;; TTF subsetting
 
 (ert-deftest niori-pdf-ttf-subset-structure ()
-  (skip-unless (file-exists-p
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+  (skip-unless niori-pdf-tests--ttf)
   (let* ((ff (niori-pdf-ttf-read-file
-              "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+              niori-pdf-tests--ttf))
          (subset (niori-pdf-ttf--build-subset ff (list 3 36 68))))
     (should (> (length subset) 1000))
     (should (= (niori-pdf-ttf--u32 subset 0) #x00010000))
@@ -1125,9 +1123,9 @@ after the multi-pass generate."
   "A non-collection font errors when an index is requested."
   (let ((ttf (expand-file-name
               "examples/chart.png" niori-pdf-tests--pkg)))
-    (skip-unless (file-exists-p "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    (skip-unless niori-pdf-tests--ttf)
     (should-error (niori-pdf-ttf-read-file
-                   "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf" 1))))
+                   niori-pdf-tests--ttf 1))))
 
 (ert-deftest niori-pdf-ttc-plist-spec-measure-and-embed ()
   "(:file PATH :index N) specs work for measurement and embedding."
@@ -1209,7 +1207,12 @@ after the multi-pass generate."
 ;;;; PDF/A-2b
 
 (defconst niori-pdf-tests--ttf
-  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+  (when (executable-find "fc-match")
+    (let ((path (car (process-lines
+                      "fc-match" "-f" "%{file}" "DejaVuSans"))))
+      (when (and path (file-readable-p path))
+        path)))
+  "Path to DejaVu Sans, as resolved by Fontconfig.")
 
 (ert-deftest niori-pdf-pdfa-icc-profile-is-valid ()
   "The generated ICC profile has a valid header and tag table."

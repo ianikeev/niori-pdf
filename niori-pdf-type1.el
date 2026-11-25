@@ -316,13 +316,18 @@ second operand of the first operator's argument list."
 (defun niori-pdf-type1--afm-number (path key)
   "Read the global font info KEY from the .afm file next to PATH."
   (condition-case nil
-      (let* ((afm (concat (file-name-sans-extension path) ".afm"))
-             (alt (concat (file-name-sans-extension path) ".AFM")))
-        (when (file-exists-p afm)
+      (let* ((base (file-name-sans-extension path))
+             (afm (cond
+                   ((file-exists-p (concat base ".afm"))
+                    (concat base ".afm"))
+                   ((file-exists-p (concat base ".AFM"))
+                    (concat base ".AFM")))))
+        (when afm
           (with-temp-buffer
             (insert-file-contents afm)
             (let ((m (string-match
-                      (concat "^" (regexp-quote key) "[ \t]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)")
+                      (concat "^" (regexp-quote key)
+                              "[ \t]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)")
                       (buffer-string))))
               (when m
                 (niori-pdf-type1--parse-number
