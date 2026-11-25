@@ -112,8 +112,8 @@ the unembedded base-14 fonts."
           (logand n 255)))
 
 (defun niori-pdf-pdfa--icc-xyz-tag (x y z)
-  "XYZType ('XYZ ') payload with coordinates X Y Z.
-The payload's first four bytes are the TYPE signature 'XYZ ',
+  "XYZType (the \"XYZ \" signature) payload with coordinates X Y Z.
+The payload begins with the four-byte TYPE signature \"XYZ \",
 followed by the 4-byte reserved field and three s15Fixed16 numbers."
   (concat "XYZ \0\0\0\0"
           (niori-pdf-pdfa--s15f16 x)
