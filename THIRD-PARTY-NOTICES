@@ -1,0 +1,77 @@
+THIRD-PARTY-NOTICES
+===================
+
+CL-PDF
+------
+CL-PDF by Marc Battyani:
+https://github.com/mbattyani/cl-pdf
+
+The CL-PDF-derived portions in niori-pdf retain the CL-PDF copyright and
+license notice reproduced in LICENSE.  The original CL-PDF source credits
+Lars Rustemeier for the Code 128 barcode implementation and Carlos Ungil
+for the plot-xy contribution in chart.lisp.  These acknowledgments are
+retained in the relevant niori-pdf source headers.
+
+CL-TYPESETTING
+--------------
+CL-TYPESETTING by Marc Battyani:
+https://github.com/mbattyani/cl-typesetting
+
+The CL-TYPESETTING-derived layout and typesetting portions retain the
+copyright and license notice reproduced in LICENSE.
+
+The upstream license file recommends that applications using CL-PDF or
+CL-TYPESETTING include the phrase “Document(s) generated with
+cl-pdf/cl-typesetting”.  The upstream text expressly says this is not a
+license requirement.  niori-pdf does not impose that phrase as a condition
+on users of generated PDFs.
+
+Adobe Core 14 AFM metrics
+-------------------------
+Copyright (c) 1985-1997 Adobe Systems Incorporated.
+
+The Adobe Core 14 AFM notice contains the following paragraph, reproduced
+verbatim:
+
+This file and the 14 PostScript(R) AFM files it accompanies may be used,
+copied, and distributed for any purpose and without charge, with or
+without modification, provided that all copyright notices are retained;
+that the AFM files are not distributed without this file; that all
+modifications to this file or any of the AFM files are prominently noted
+in the modified file(s); and that this paragraph is not modified. Adobe
+Systems has no responsibility or obligation to support the use of the
+AFM files.
+
+niori-pdf-metrics.el contains metric data derived from the Adobe Core 14
+AFM files, converted into Emacs Lisp data tables.  The AFM files themselves
+are not included in this repository.  The source data was modified in form
+for use by niori-pdf; this modification is identified in niori-pdf-metrics.el.
+
+Project Gutenberg: Alice’s Adventures in Wonderland
+----------------------------------------------------
+Lewis Carroll’s text is identified by Project Gutenberg as ebook #11,
+“Alice’s Adventures in Wonderland”.  The ebook catalog identifies the
+work as public domain in the United States.  Copyright status outside the
+United States depends on applicable local law.
+Source: https://www.gutenberg.org/ebooks/11
+The Project Gutenberg license and trademark terms are available at:
+https://www.gutenberg.org/license
+
+The required Project Gutenberg notice is also placed at the beginning of
+examples/alice.txt.  Project Gutenberg is a registered trademark; this
+project is not affiliated with or endorsed by Project Gutenberg.
+
+Project Gutenberg required notice:
+This eBook is for the use of anyone anywhere in the United States and most other parts of the world at no cost and with almost no restrictions whatsoever. You may copy it, give it away or re-use it under the terms of the Project Gutenberg License included with this eBook or online at www.gutenberg.org. If you are not located in the United States, you’ll have to check the laws of the country where you are located before using this ebook.
+
+Items intentionally not covered by this notice file
+----------------------------------------------------
+The licensing and provenance of the language-specific pattern data in
+niori-pdf-hyphen-data.el are not addressed here.  That file is excluded
+from the present licensing update pending a separate pattern-by-pattern
+review.
+
+The provenance and redistribution terms for examples/udhr-texts.el have
+not yet been established.  This file is not relicensed by this project
+notice and should be reviewed or removed before a release that distributes
+it.

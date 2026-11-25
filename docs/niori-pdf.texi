@@ -1,0 +1,905 @@
+\input texinfo
+@c -*- texinfo -*-
+@setfilename niori-pdf.info
+@set VERSION 0.1.0
+@settitle niori-pdf: PDF generation in pure Emacs Lisp
+@documentencoding UTF-8
+@setchapternewpage off
+
+@copying
+This manual documents niori-pdf @value{VERSION}, an Emacs Lisp PDF
+library combining original code with portions derived from CL-PDF and
+CL-TYPESETTING.
+
+Copyright @copyright{} 2026 Igor Anikeev.  The manual is distributed
+under the BSD 2-Clause License.  The software also contains separately
+licensed upstream-derived code and third-party data; see LICENSE and
+THIRD-PARTY-NOTICES.
+@end copying
+
+@iftex
+@finalout
+@end iftex
+@titlepage
+@title niori-pdf
+@subtitle Generate PDF files in pure Emacs Lisp
+@subtitle Version 0.1.0
+@author Igor Anikeev
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top niori-pdf
+@insertcopying
+@end ifnottex
+
+@menu
+* Overview::          What it is and why it exists.
+* Installation::      Getting and building the package.
+* Quick Start::       Your first PDF in ten lines.
+* Compression::       DEFLATE in Elisp and the zlib story.
+* Documents::         Documents and pages.
+* Text and Fonts::    Base-14 fonts, WinAnsi, TrueType embedding.
+* Graphics::          Paths, colors, transforms, links.
+* Images::            JPEG and PNG embedding.
+* Flow Engine::       Knuth-Plass paragraphs, tables, TOC, pagination.
+* Outlines::          Document bookmarks.
+* AcroForms::         Interactive form fields.
+* Barcodes::          Code 128, Code 39, EAN-13, QR matrices.
+* QRCode::            The ISO 18004 QR encoder (versions 1-10).
+* Charts::            Pie and bar charts.
+* Glyph Outlines::    Drawing text as vector outlines (TTF/OTF).
+* PDF/A::             PDF/A-2b archival output.
+* Customization::     Variables you can tune.
+* Limitations::       What is not ported (yet).
+* Function Index::    .
+* Variable Index::    .
+@end menu
+
+@node Overview
+@chapter Overview
+
+niori-pdf generates PDF 1.4 files entirely inside GNU Emacs.  It is a
+port of the core of Marc Battyani's Common Lisp library @uref{
+https://github.com/mbattyani/cl-pdf, cl-pdf}, plus a practical subset of
+its layout engine cl-typesetting, adapted to idiomatic Emacs Lisp.
+
+The reason for the port: org-export and @code{latex} make Emacs depend
+on a TeX installation.  A standalone Emacs application (such as
+niori.el) cannot require TeX, Ghostscript or a headless browser on the
+user's machine.  niori-pdf writes standard PDF files with nothing but a
+running Emacs; its only dependency is Emacs 27.1 or newer.
+
+The package is split into modules, each corresponding to a layer of the
+original library:
+
+@itemize
+@item @file{niori-pdf-core.el} --- object model, file writer, xref,
+compression (@pxref{Compression})
+@item @file{niori-pdf-metrics.el} --- generated AFM width tables for the
+base-14 fonts
+@item @file{niori-pdf-fonts.el} --- font registration, WinAnsi encoding,
+text measurement
+@item @file{niori-pdf-ttf.el} --- TrueType/OpenType parsing, subsetting,
+embedding (including TrueType collections)
+@item @file{niori-pdf-type1.el} --- Type 1 font (.pfb/.pfa) parsing and
+embedding
+@item @file{niori-pdf-content.el} --- text and vector graphics operators
+(the pdf-base/text/pdf-geom equivalents)
+@item @file{niori-pdf-images.el} --- JPEG and PNG XObjects
+@item @file{niori-pdf-flow.el} --- the typesetting engine
+(@pxref{Flow Engine})
+@item @file{niori-pdf-pdfa.el} --- PDF/A-2b archival output
+(@pxref{PDF/A})
+@end itemize
+
+@node Installation
+@chapter Installation
+
+The package is built for MELPA; until published, install from a
+checkout by adding the directory to @code{load-path} and requiring
+@code{niori-pdf}.  The MELPA recipe is:
+
+@lisp
+(niori-pdf :fetcher github :repo "ianikeev/niori-pdf")
+@end lisp
+
+Running @code{make} byte-compiles the library and builds this manual:
+
+@example
+make            @r{compile + docs/niori-pdf.info}
+make test       @r{run the ERT suite}
+make dist       @r{release tarball}
+@end example
+
+The @code{info} target needs @command{makeinfo} (the Debian/Ubuntu
+package is @code{texinfo}); the @code{compile} and @code{test} targets
+need only Emacs.
+
+@node Quick Start
+@chapter Quick Start
+
+@lisp
+(require 'niori-pdf)
+
+(niori-pdf-with-document (:title "Hello")
+  (niori-pdf-with-page ()
+    (niori-pdf-set-font "Helvetica-Bold" 24)
+    (niori-pdf-draw-text 72 720 "Hello, PDF world")
+    (niori-pdf-set-font "Helvetica" 12)
+    (niori-pdf-draw-text 72 690 "Pure Emacs Lisp."))
+  (niori-pdf-save niori-pdf--doc "/tmp/hello.pdf"))
+@end lisp
+
+Coordinates are PDF points (1/72 inch), origin at the bottom-left of
+the page, y pointing up --- exactly like cl-pdf.  The default page is
+A4 portrait (595.28 x 841.89 pt); pass @code{:width}/@code{:height} to
+@code{niori-pdf-with-page} for anything else.
+
+For reports with automatic layout, jump to @ref{Flow Engine}.
+
+@menu
+* Quick Start: Quick Start Flow.   A one-page report with the flow engine.
+@end menu
+
+@node Quick Start Flow
+@section Quick start: the flow engine
+
+The flow engine lays out whole documents for you --- justified
+paragraphs, headings, tables, lists, images --- with automatic page
+breaks, running headers and a table of contents:
+
+@lisp
+(require 'niori-pdf)
+
+(niori-pdf-flow-generate
+ (lambda ()
+   (niori-pdf-with-flow-document
+       (:title "Q4 report" :footer-fn #'niori-pdf-flow-page-footer)
+     (niori-pdf-flow-heading "Q4 report" :level 1)
+     (niori-pdf-flow-paragraph
+      "Justified text with real font metrics, wrapped and paginated
+automatically, hyphenated with TeX patterns."
+      :align 'justified)
+     (niori-pdf-flow-itemize '("first point" "second point"))
+     (niori-pdf-flow-table
+      (list :header ["Region" "Revenue"]
+            :rows '(("North" "156") ("South" "134"))))
+     (niori-pdf-flow-toc)))
+ (niori-pdf-flow-save niori-pdf--doc "/tmp/report.pdf"))
+@end lisp
+
+When @code{niori-pdf-flow-toc} or cross-reference points are used,
+@code{niori-pdf-flow-generate} runs the builder a second (at most
+six) time so every page number in the output is correct.
+
+@node Compression
+@chapter Compression and zlib
+
+This is the one area where Elisp needs an explanation, because GNU
+Emacs bundles zlib @emph{for decompression only}: the API provides
+@code{zlib-available-p} and @code{niori-pdf-inflate}/
+@code{zlib-decompress-region}, but there is no built-in compression
+primitive (there is no @code{zlib-insert}).
+
+niori-pdf solves this in pure Elisp.  @code{niori-pdf-deflate}
+implements DEFLATE (RFC 1951) with fixed Huffman codes and an LZ77
+hash-chain matcher and wraps the result in an RFC 1950 zlib container
+with an Adler-32 checksum.  The output is an ordinary
+@code{/FlateDecode} stream that every PDF viewer understands.  The test
+suite inflates it back with Emacs's own zlib as a round-trip check.
+
+@defopt niori-pdf-compression
+Stream compression strategy, one of:
+
+@table @code
+@item deflate
+The pure Elisp implementation (default).  Always available, no external
+dependencies, adequate compression for content streams and CMaps.
+@item raw
+Write streams uncompressed.  Useful for debugging.
+@item gzip
+Use the external program @code{niori-pdf-gzip-program} (default
+@code{"gzip"}).  Its gzip container is stripped to the raw DEFLATE
+payload, which is a valid @code{FlateDecode} stream.  Falls back to
+@code{deflate} when the binary is missing.  This option breaks the
+standalone-Emacs guarantee and is only worthwhile for very large
+documents.
+@end table
+@end defopt
+
+@defopt niori-pdf-deflate-min-size
+Streams shorter than this many bytes (default 100) are written
+uncompressed regardless of the strategy.
+@end defopt
+
+@defopt niori-pdf-deflate-max-chain
+How many hash-chain candidates the LZ77 matcher examines per position
+(default 16).  Higher values compress slightly better and run slower.
+@end defopt
+
+Note that Emacs's built-in decompression is still used where it
+matters: PNG IDAT inflation (@code{zlib-decompress-region}) and the
+test-suite round trips.  If Emacs was built without zlib, PNG images
+with compressed IDAT raise an explicit error.
+
+@node Documents
+@chapter Documents and pages
+
+@defmac niori-pdf-with-document (props) body@dots{}
+Create a document context and run @var{body} inside it.  @var{props}
+is a literal plist; supported keys: @code{:title :author :subject
+:keywords :creator :producer :page-width :page-height :compression}.
+The document is the value of the variable @code{niori-pdf--doc} during
+@var{body} and the value of the whole form.
+@end defmac
+
+@defmac niori-pdf-with-page (props) body@dots{}
+Create a page in the current document.  @var{props}: @code{:width
+:height} (points).  All drawing forms inside operate on this page.
+@end defmac
+
+@defun niori-pdf-save doc file
+Write a finished @var{doc}ument to @var{file} (classic xref table,
+trailer with catalog and info dictionary).  Producer and creation date
+are filled in automatically; info strings are written as UTF-16BE so
+any Unicode title works.
+@end defun
+
+@node Text and Fonts
+@chapter Text and Fonts
+
+@defun niori-pdf-set-font name size
+Select the current font.  @var{name} is one of:
+
+@itemize
+@item a base-14 name (@code{"Helvetica"}, @code{"Helvetica-Bold"},
+@code{"Helvetica-Oblique"}, @code{"Helvetica-BoldOblique"},
+@code{"Times-Roman"}, @code{"Times-Bold"}, @code{"Times-Italic"},
+@code{"Times-BoldItalic"}, @code{"Courier"}, @code{"Courier-Bold"},
+@code{"Courier-Oblique"}, @code{"Courier-BoldOblique"},
+@code{"Symbol"}, @code{"ZapfDingbats"}); drawn unembedded with the
+real Adobe AFM metrics,
+@item a path to a @file{.ttf} TrueType, @file{.otf}
+OpenType/CFF or @file{.ttc} TrueType collection file, which is
+parsed, subsetted and embedded,
+@item a path to a @file{.pfb} or @file{.pfa} Type 1 font file, which
+is embedded whole with a @code{/FontFile} stream
+(@pxref{Type 1 fonts}),
+@item a plist @code{(:file PATH :index N)} selecting member @var{N}
+(0-based) of a TrueType collection.
+@end itemize
+@end defun
+
+@subheading Base-14 fonts
+The base-14 fonts are drawn from the real Adobe AFM metrics (embedded in
+@file{niori-pdf-metrics.el}, generated from the freely redistributable
+core-14 AFM files).  Text is encoded with @code{WinAnsiEncoding}
+(Latin-1 plus the Windows special characters such as the euro sign,
+smart quotes and dashes).  Characters without a WinAnsi mapping are
+drawn as @samp{?}.
+
+@subheading TrueType, OpenType/CFF and TrueType collections
+@code{niori-pdf-set-font} accepts @file{.ttf}, @file{.otf} and
+@file{.ttc} paths.  TrueType and OpenType/CFF fonts are parsed (cmap
+formats 0/4/6/12, head, hhea, maxp, hmtx, loca, glyf, name, post,
+OS/2), a glyph subset covering exactly the characters you draw is
+built (composite glyphs are closed transitively, original glyph ids
+are retained) and the result is embedded as a @code{Type0} /
+@code{CIDFontType2} (TrueType) or @code{CIDFontType0} (CFF) font with
+@code{Identity-H} encoding and a @code{ToUnicode} CMap, so text
+extraction keeps working.  Missing glyphs fall back to
+@code{.notdef}.
+
+A @file{.ttc} TrueType collection packs several fonts into one file;
+niori-pdf reads the member selected by @var{index} (default 0).  Use
+@code{niori-pdf-ttf-collection-fonts} to list the members and pass a
+plist spec to choose one:
+
+@lisp
+(niori-pdf-ttf-collection-fonts "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc")
+  @r{@result{} ((0 "WenQuanYiZenHei" "WenQuanYi Zen Hei")
+           (1 "WenQuanYiZenHeiMono" "WenQuanYi Zen Hei Mono")
+           (2 "WenQuanYiZenHeiSharp" "WenQuanYi Zen Hei Sharp"))}
+
+;; draw with the second member of the collection:
+(niori-pdf-set-font '(:file "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+                      :index 1)
+                    12)
+@end lisp
+
+@defun niori-pdf-ttf-collection-fonts path
+List the fonts of the TrueType collection at @var{path}.  Returns a
+list of @code{(INDEX PS-NAME FAMILY)}.
+@end defun
+
+@defun niori-pdf-text-width string font &optional size
+Width of @var{string} in points at @var{size}, using the same metrics
+the viewer will use.  This is the measurement primitive of the flow
+engine.  @var{font} may be a font object, a base-14 name, a font file
+path or a @code{(:file :index)} collection spec.
+@end defun
+
+@node Type 1 fonts
+@section Type 1 fonts (.pfb/.pfa)
+
+Type 1 font programs are embedded whole --- no subsetting (Type 1
+subsetting would mean rewriting the private dictionary; the fonts are
+small anyway).  The parser handles both container formats: the binary
+@file{.pfb} segment structure (@code{0x80 0x01} ASCII,
+@code{0x80 0x02} binary, @code{0x80 0x03} EOF markers, with the
+post-eexec hex trailer mapped to @code{/Length3}) and the ASCII
+@file{.pfa} form (clear text up to the @code{eexec} line, then
+hex-encoded binary).
+
+No companion @file{.afm} file is needed: niori-pdf decrypts the
+@code{eexec} section (key 55665) and reads the advance width of every
+glyph directly from the @code{/CharStrings} charstrings (key 4330,
+the first two operands of @code{hsbw}), so the PDF @code{/Widths}
+array and the measurement metrics are derived from the font program
+itself.  The result is a @code{/Subtype /Type1} font with
+@code{/Encoding /WinAnsiEncoding} and a @code{/FontDescriptor}
+carrying @code{/FontName}, @code{/FontBBox}, @code{/ItalicAngle},
+@code{/CapHeight}, @code{/StemV} (from the private
+@code{/StdVW}) and the standard flags (fixed-pitch, italic).
+
+@lisp
+;; URW Nimbus Roman, metric-compatible with Times-Roman:
+(niori-pdf-set-font
+ "/usr/share/fonts/X11/Type1/NimbusRoman-Regular.pfb" 10.5)
+@end lisp
+
+Caveat: the text you draw is mapped through WinAnsiEncoding glyph
+names, so the font must contain the standard Latin glyph names
+(all the URW Base-35 fonts do).
+
+@node Graphics
+@chapter Graphics
+
+All operators append to the current page's content stream.  The names
+mirror cl-pdf:
+
+@example
+niori-pdf-move-to / niori-pdf-line-to / niori-pdf-curve-to
+niori-pdf-close-path / niori-pdf-rectangle / niori-pdf-circle
+niori-pdf-ellipse / niori-pdf-arc / niori-pdf-polyline
+niori-pdf-stroke / niori-pdf-close-stroke / niori-pdf-fill
+niori-pdf-fill-stroke / niori-pdf-clip
+niori-pdf-set-line-width / niori-pdf-set-dash-pattern
+niori-pdf-set-rgb-fill / niori-pdf-set-rgb-stroke
+niori-pdf-set-gray-fill / niori-pdf-set-gray-stroke
+niori-pdf-set-cmyk-fill / niori-pdf-set-cmyk-stroke
+niori-pdf-set-color-fill / niori-pdf-set-color-stroke  @r{named colors}
+niori-pdf-set-fill-alpha / niori-pdf-set-stroke-alpha   @r{transparency}
+niori-pdf-translate / niori-pdf-rotate / niori-pdf-scale
+niori-pdf-skew / niori-pdf-transform
+niori-pdf-with-saved-state  @r{macro: q/Q around the body}
+niori-pdf-draw-text / niori-pdf-draw-text-at
+niori-pdf-draw-centered-text / niori-pdf-draw-right-text
+niori-pdf-add-uri-link / niori-pdf-add-link
+@end example
+
+@node Images
+@chapter Images
+
+@defun niori-pdf-image-from-file spec
+Load an image from a file path or a plist @code{(:type jpeg|png :data
+BYTES)}.  JPEG files are embedded as @code{DCTDecode} XObjects
+(dimensions and colorspace parsed from the markers; grayscale, RGB and
+Adobe-inverted CMYK are supported).  PNG files are fully decoded in
+Elisp: chunk parsing, zlib inflation, row un-filtering (None, Sub, Up,
+Average, Paeth), color types 0/2/3/4/6, bit depths 1/2/4/8 and 16
+(downsampled to 8).  Palette images with a @code{tRNS} chunk and
+RGBA/gray-alpha images get an alpha @code{/SMask}.  Interlaced PNGs are
+rejected.
+@end defun
+
+@defun niori-pdf-draw-image image x y &optional dx dy
+Draw an image object with its lower-left corner at (@var{x}, @var{y}),
+scaled to @var{dx} x @var{dy} points (default: one point per pixel).
+@end defun
+
+@node Flow Engine
+@chapter The Flow Engine
+
+The flow engine is the Elisp counterpart of cl-typesetting: you declare
+blocks, it wraps lines, breaks pages and keeps headings with their
+content.  All block functions operate on the dynamic flow context
+established by @code{niori-pdf-with-flow-document}.
+
+@defmac niori-pdf-with-flow-document (props) body@dots{}
+Establish a flow context.  @var{props}: @code{:width :height :margins}
+(list @code{(left top right bottom)}, default @code{(54 56 54 56)})
+@code{:header-fn :footer-fn} (functions of @code{(flow page-number)})
+@code{:default-font :default-size} @code{:language :hyphenate :vjustify}
+@code{:pdfa} (enable PDF/A-2b archival output, @pxref{PDF/A}) and the
+document info keys.
+@end defmac
+
+@defun niori-pdf-flow-generate builder
+Run @var{builder} (a thunk that calls the block functions) and return
+the document.  The builder is re-run until the layout is stable: the
+table-of-contents entries, the reference points recorded with
+@code{niori-pdf-flow-mark-ref-point} and the per-page footnote block
+heights must stop changing between passes (at most six passes), so
+the TOC, every cross-reference and the footnotes show correct
+results.
+@end defun
+
+@defun niori-pdf-flow-save doc file
+Write the document (same as @code{niori-pdf-save}).
+@end defun
+
+@subheading Blocks
+
+@defun niori-pdf-flow-paragraph content &rest keys
+@var{content} is a string or a list of runs; a run is a string or a
+@code{(TEXT &key font size color superscript subscript underline
+strike background)} form.  @code{:superscript}/@code{:subscript} set
+the run at 66% of the base size with the appropriate baseline
+offset, @code{:underline} and @code{:strike} draw rules under and
+through the run, and @code{:background} fills an RGB rectangle
+behind it.  Paragraph keys: @code{:align
+left|center|right|justified}, @code{:font :size :leading :color
+:indent :space-before :space-after}.  Paragraphs are broken with the Knuth-Plass algorithm over the
+box/glue/penalty model (three TeX-style passes with pretolerance,
+tolerance and emergency stretch); lines are set with TJ
+adjustments.  With @code{:align justified} the last line keeps its
+alignment.  Hyphenation uses TeX patterns via @code{:hyphenate}
+(default t) and @code{:language} (@code{american british german
+french spanish italian portuguese esperanto ukrainian russian}; the
+Portuguese set covers both European and Brazilian Portuguese).  Words
+that contain an explicit hyphen (compound
+identifiers such as @code{niori-pdf-curve-to}) follow the TeX rule:
+pattern hyphenation is disabled for them and the break opportunities
+sit after their existing hyphens, with no second hyphen glyph at the
+line end.
+@end defun
+
+@defun niori-pdf-flow-heading text &key level font size color space-before space-after toc
+Styled heading (levels 1..4 with default styles).  Headings reserve
+space for the following block (keep-with-next) and, unless @code{toc}
+is nil, record an entry for the table of contents.
+@end defun
+
+@defun niori-pdf-flow-table spec
+Grid table.  @var{spec} keys: @code{:cols} (widths or @code{:auto}),
+@code{:header}, @code{:rows}, @code{:padding}, @code{:header-bg
+:header-fg}, @code{:borders} (RGB list or nil), @code{:font :size
+:align}.  A cell is a string or a plist @code{(:text :font :size
+:color :align :background :colspan :rowspan :valign)}: @code{:colspan}
+and @code{:rowspan} span the grid (@code{:valign} is
+@code{top}, @code{center} or @code{bottom} inside the spanned
+rectangle).  A row is a list of cells --- or a plist @code{(:cells
+:keep-with-next :background)}: @code{:keep-with-next} moves the row
+to the next page together with its successor and @code{:background}
+fills the whole row.  Cell text wraps; row heights are computed from
+the wrapped cells (a rowspan cell contributes to the sum of its
+covered rows); tables split across pages, repeat the header row, and
+never break inside a span.  Columns whose minimum word width exceeds
+their width are widened, funded by the surplus columns.
+@code{:space-after} adds vertical space between the closing rule and
+the next block (default 0).
+@end defun
+
+@defun niori-pdf-flow-image path &key width max-height align caption
+Image block, scaled to @var{width} (fitting @var{max-height}), with an
+optional centered caption.
+@end defun
+
+@defun niori-pdf-flow-box builder &key background border padding width align
+Draw a box around the blocks produced by @var{builder}; useful for KPI
+cards and callouts.
+@end defun
+
+@defun niori-pdf-flow-columns builders &key widths gap row-height
+Lay out several builders side by side (KPI rows); the row is as tall as
+the tallest column.
+@end defun
+
+@defun niori-pdf-flow-rule &key thickness color indent space-before space-after
+Horizontal rule.
+@end defun
+
+@defun niori-pdf-flow-spacer h
+@defunx niori-pdf-flow-vglue &optional stretch
+@defunx niori-pdf-flow-vfill
+@defunx niori-pdf-flow-page-break
+Fixed vertical space; stretchable vertical glue (like TeX's
+@code{\vskip} with @var{stretch} units of stretch); infinitely
+stretchable glue (@code{\vfill}); forced page break.  When a page
+ends, the leftover space above the bottom margin is distributed over
+its vertical glues proportionally to their stretch --- blocks after a
+glue are shifted down with a PDF @code{cm} transform, so text, rules
+and images all move together.  Give the document @code{:vjustify t}
+to treat every block boundary as a weak glue (vertical
+justification), as in cl-typesetting's filled vboxes.
+@end defun
+
+@defun niori-pdf-flow-itemize items &key bullet bullet-color indent gap font size color align space-between space-before space-after hyphenate language
+Bulleted list.  @var{items} are strings or run lists; each item is a
+paragraph with a hanging indent and the @var{bullet} drawn left of
+its first line.
+@end defun
+
+@defun niori-pdf-flow-enumerate items &key start format marker-color indent gap font size color align space-between space-before space-after hyphenate language
+Numbered list; markers are formatted with @var{format} (default
+@code{"%d."}) from @var{start} (default 1) and right-aligned in a
+common column.
+@end defun
+
+@defun niori-pdf-flow-float builder &key width side gap
+Float the blocks produced by @var{builder} (a thunk) to @var{side}
+(@code{left}, default, or @code{right}), @var{width} points wide.
+Paragraphs and rules on the same page wrap around the float; the
+flow cursor stays at the float's top, so content fills the space
+beside it.  Floats do not survive a page break.
+@end defun
+
+@defun niori-pdf-flow-toc
+Table of contents.  Place it early in the document (typically after a
+title block, before a @code{niori-pdf-flow-page-break}).  Entries are
+collected from the headings; @code{niori-pdf-flow-generate} re-runs the
+builder so page numbers are correct.
+@end defun
+
+@subheading Reference points (cross references)
+
+@defun niori-pdf-flow-mark-ref-point id &optional data
+Record a reference point @var{id} at the current position (with
+arbitrary @var{data}).  Collected across the multi-pass layout.
+@end defun
+
+@defun niori-pdf-flow-ref-page-number id &optional default
+@defunx niori-pdf-flow-ref-data id
+@defunx niori-pdf-flow-ref id
+Page number / data / whole entry of reference point @var{id} from
+the previous pass (nil on the first pass) --- use them inside your
+own content to print ``see chapter N''.
+@end defun
+
+@defun niori-pdf-flow-put-ref-page-number id &key font size color align unresolved
+Typeset the page number of @var{id}, right-aligned by default; on
+the first pass @var{unresolved} (an em dash) is printed instead and
+the multi-pass loop re-runs the builder until the real number
+appears.
+@end defun
+
+@subheading Footnotes
+
+@defun niori-pdf-flow-footnote text &key marker font size leading color
+Register @var{text} as a footnote for the current page and return its
+@var{marker}.  The note is set in a block at the bottom of the page,
+below a short LaTeX-style separator rule (@code{niori-pdf-flow-footnote-rule-width}
+of the text measure; color @code{niori-pdf-flow-footnote-rule-color}),
+when the page is flushed.  @var{marker} defaults to the note's number
+on the page (@samp{1}, @samp{2}, @dots{}); embed it in the citing
+paragraph as a superscript run:
+
+@example
+(let ((fn (niori-pdf-flow-footnote "Studio notes.")))
+  (niori-pdf-flow-paragraph
+   (list "Text cites a source" (list fn :superscript t) ".") ...))
+@end example
+
+@var{font}, @var{size} (default 8), @var{leading} (default 1.24) and
+@var{color} style the note text.  Pages that carry footnotes are
+shortened by their note block's height on the next layout pass of
+@code{niori-pdf-flow-generate}, so the notes always fit between the
+text and the bottom margin.  Register the note adjacent to the
+paragraph that cites it: a note belongs to the page that is current
+when @code{niori-pdf-flow-footnote} runs.
+@end defun
+
+@subheading Page furniture
+
+Two ready-made template functions can be passed as
+@code{:header-fn}/@code{:footer-fn}:
+@code{niori-pdf-flow-page-footer} draws a centered
+@samp{- @var{n} -} page number; @code{niori-pdf-flow-page-header} draws
+the document title left and the page number right in the top margin.
+Custom functions receive the flow context and the page number and may
+use the ordinary content-level operators.
+
+@node Outlines
+@chapter Outlines (Bookmarks)
+
+@code{niori-pdf-outlines.el} builds the PDF outline tree (the bookmark
+panel).  Flow headings record outline entries automatically; for raw
+documents add entries with @code{niori-pdf-outlines-add}.
+
+@defun niori-pdf-outlines-add doc title page &key level y
+Add an outline entry @var{title} pointing to @var{page} (1-based) of
+@var{doc}.  @var{level} (default 1) nests under the previous entry of
+the nearest shallower level; @var{y} is the vertical destination in PDF
+coordinates (nil = page top).
+@end defun
+
+@defun niori-pdf-outlines-count doc
+Number of accumulated entries.
+@end defun
+
+@defun niori-pdf-outlines-clear doc
+Forget all entries of @var{doc}.
+@end defun
+
+The tree is written during @code{niori-pdf-save}; the catalog receives
+@code{/Outlines} and @code{/PageMode /UseOutlines}.  A document with
+outline entries only (no flow TOC) works fine as well.
+
+@node AcroForms
+@chapter AcroForms (Interactive Forms)
+
+@code{niori-pdf-acroforms.el} adds interactive form fields (PDF
+32000-1 chapter 12.7).  Call @code{niori-pdf-acroforms-enable} once
+inside the document, then create fields with page coordinates (origin
+bottom-left, like @code{niori-pdf-add-link}).  Every field gets a
+generated appearance stream, so the form renders correctly even in
+viewers that ignore @code{NeedAppearances}.
+
+@defun niori-pdf-acroforms-enable doc &optional need-appearances
+Enable form collection for @var{doc}.  With @var{need-appearances} the
+catalog gets @code{/NeedAppearances true} (by default niori-pdf
+provides its own appearance streams and omits the flag).
+@end defun
+
+@defun niori-pdf-acroforms-text-field doc name x y w h &key value font font-size tooltip multiline password read-only align max-len bg bc
+Text field.  @var{align} is 0 (left), 1 (center) or 2 (right).
+@end defun
+
+@defun niori-pdf-acroforms-checkbox doc name x y w h &key checked read-only tooltip bg bc mark
+Check box with a path-drawn check mark appearance.
+@end defun
+
+@defun niori-pdf-acroforms-choice doc name x y w h options &key value editable tooltip read-only bg bc mark
+Dropdown (combo) choice; @var{options} is a list of strings.
+@end defun
+
+@defun niori-pdf-acroforms-radio-group doc name buttons &key value read-only tooltip bg bc mark
+Radio group; @var{buttons} is a list of @code{(x y size
+export-string)} tuples on the current page.
+@end defun
+
+@defun niori-pdf-acroforms-push-button doc name x y w h &key caption tooltip uri font font-size read-only bg bc fg
+Push button; with @var{uri} it triggers a URI action.
+@end defun
+
+@defun niori-pdf-acroforms-set-value doc name value
+Update a field's value (and appearance) after creation: strings for
+text and choice fields, booleans for check boxes, export strings for
+radio groups.
+@end defun
+
+@node Barcodes
+@chapter Barcodes and QR codes
+
+@code{niori-pdf-barcodes.el} ports cl-pdf's @file{bar-codes.lisp}
+(Code 128 by Lars Rustemeier) and adds Code 39 and EAN-13, plus the
+module-matrix drawer shared with the QR encoder
+(@code{niori-pdf-qrcode.el}).  All barcodes are drawn with path
+primitives, so no fonts are embedded for the bars themselves.
+
+@defun niori-pdf-barcode-code128 string x y &key height width font font-size start-stop-factor show-string color
+Code 128 with automatic charset selection (C for even-length
+all-digit strings, B otherwise).  The bars rise upward from the
+baseline @var{y}; the human readable text is drawn below it.
+@end defun
+
+@defun niori-pdf-barcode-code39 string x y &key height width narrow show-text font font-size color
+Code 3 of 9 (@code{0-9 A-Z - . space $ / + %}).
+@end defun
+
+@defun niori-pdf-barcode-ean13 string x y &key height width font font-size color
+EAN-13; accepts 12 or 13 digits (the check digit is computed for 12).
+@end defun
+
+@defun niori-pdf-barcode-qr matrix x y &key point-size color
+Draw a module @var{matrix} (list of lists of 0/1) as filled squares,
+row 0 at the anchor with the y axis running downward (the port of
+cl-pdf's @code{draw-qr-code}).
+@end defun
+
+@node QRCode
+@chapter QR codes
+
+@code{niori-pdf-qrcode.el} is a full QR Code model 2 encoder
+(ISO/IEC 18004) written for niori-pdf - cl-pdf only draws a
+pre-computed matrix.  Features: byte mode (UTF-8, no ECI segment),
+versions 1-10, all four error correction levels, Reed-Solomon error
+correction over GF(256) with the proper block structure and
+interleaving, all eight mask patterns scored with the ISO penalty
+rules N1-N4, BCH(15,5) format information and BCH(18,6) version
+information for versions 7-10.  Every matrix emitted by the test
+suite round-trips through an independent QR decoder.
+
+@defun niori-pdf-qr-encode string &key ecl version
+Return @code{(MATRIX . VERSION)}; @var{matrix} is a list of N lists
+of N integers (1 = dark, 0 = light), row 0 at the top.  @var{ecl} is
+the symbol @code{L}, @code{M}, @code{Q} or @code{H} (default
+@code{M}); @var{version} forces a version 1-10, otherwise the
+smallest one that fits is used.
+@end defun
+
+@defun niori-pdf-barcode-qr-string string x y &rest keys
+Encode @var{string} and draw the symbol with its top-left module
+corner at (@var{x}, @var{y}).  Keys: @code{:ecl :version
+:point-size :color}.  Returns @code{(WIDTH HEIGHT VERSION)}.
+@end defun
+
+@node Charts
+@chapter Charts
+
+@code{niori-pdf-charts.el} ports the chart helpers of cl-pdf's
+@file{chart.lisp}: pie charts and axis bar charts drawn as vector
+paths with legend and value labels.
+
+@defun niori-pdf-pie-chart data x y radius &rest keys
+@var{data} is a list of @code{(LABEL VALUE COLOR)}; keys:
+@code{:title :show-values :label-font :label-size}.
+@end defun
+
+@defun niori-pdf-bar-chart data x y width height &rest keys
+@var{data} as above; keys: @code{:title :y-axis-labels :grid-color
+:bar-gap :show-values :label-font :label-size}.
+@end defun
+
+@node Glyph Outlines
+@chapter Glyph Outlines
+
+@code{niori-pdf-glyphs.el} extracts the outline contours of a glyph
+from a TrueType (@file{glyf}) or CFF/OpenType (@file{CharStrings})
+font and draws them with path primitives.  This is the port of
+cl-pdf's glyph rendering; it is handy for watermark-style decorative
+lettering at any size.
+
+@defun niori-pdf-draw-glyph-outline font-file char x y size &key fill stroke line-width
+Draw the outline of @var{char} from @var{font-file} (a .ttf or .otf
+path) with its baseline at (@var{x}, @var{y}) scaled to @var{size}
+points.  @var{fill}/@var{stroke} are RGB lists or nil.
+@end defun
+
+@node PDF/A
+@chapter PDF/A-2b archival output
+
+PDF/A (ISO 19005) is the archival flavor of PDF: everything needed to
+render the file is embedded, so the document displays identically
+decades from now.  niori-pdf implements the pragmatic flavor,
+@strong{PDF/A-2b} (level B, based on PDF 1.7): transparency, JPEG
+images and URI/GoTo link actions stay legal, and no structure tagging
+is required.  PDF/A-1 is deliberately not supported (it forbids
+transparency), nor is PDF/A-3 (it adds embedded files, which archival
+reports rarely need).
+
+@defun niori-pdf-pdfa-enable doc &optional level
+Enable PDF/A-2b output for @var{doc}.  @var{level} must be 2 (the
+default).  Registers the metadata/output-intent catalog extension and
+the annotation save hook; @code{niori-pdf-save} then writes a
+@code{%PDF-1.7} header and an @code{/ID} trailer.  Returns
+@var{doc}.  In flow documents, simply pass @code{:pdfa t} to
+@code{niori-pdf-with-flow-document} instead of calling this
+function.
+@end defun
+
+What changes when PDF/A is enabled:
+
+@itemize
+@item @code{/Metadata} --- the document catalog gets an uncompressed
+XMP packet with @code{pdfaid:part}/@code{pdfaid:conformance} and the
+dublin-core properties (title, creator, subject, keywords), mirroring
+the Info dictionary byte for byte as ISO 19005-2 6.6.2 requires.
+@item @code{/OutputIntents} --- a @code{GTS_PDFA1} OutputIntent with
+an embedded ICC profile as @code{/DestOutputProfile}, so DeviceRGB and
+DeviceGray colors are valid.  The profile is generated in pure Elisp:
+a minimal, deterministic ICC v2 matrix/TRC profile (sRGB primaries,
+gamma 2.2 TRCs, D50 media white point; about 600 bytes).  It is a
+structurally valid ICC profile --- verified against lcms2 --- but it
+describes a gamma-2.2 approximation of sRGB rather than the exact
+sRGB parametric curve.
+@item @code{/ID} --- the trailer carries an MD5-based /ID array (also
+written for plain documents; harmless and useful).
+@item Link annotations get the Print flag (@code{/F 4}, ISO 19005-2
+6.8).
+@item Fonts --- every font must be embedded (ISO 19005 forbids
+unembedded fonts, without exception for Symbol/ZapfDingbats).  The
+base-14 names are therefore rejected unless
+@code{niori-pdf-pdfa-base14-substitutions} maps them to a font file;
+@code{.ttf}/@code{.otf}/@code{.ttc}/@code{.pfb}/@code{.pfa} fonts
+embed as usual.
+@item Color --- DeviceCMYK is rejected (the built-in OutputIntent is
+sRGB); use RGB or grayscale.
+@end itemize
+
+@defopt niori-pdf-pdfa-base14-substitutions
+Alist mapping base-14 font names to embedded font specs used in PDF/A
+documents, e.g.:
+
+@lisp
+(setq niori-pdf-pdfa-base14-substitutions
+      '(("Helvetica" . "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+        ("Helvetica-Bold"
+         . "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+        ("Symbol" . "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")))
+@end lisp
+
+The replacement can be any font spec accepted by
+@code{niori-pdf-set-font}.  Since Symbol/ZapfDingbats text is drawn
+from Unicode strings through the font's own encoding map, mapping them
+to a TrueType font with the right codepoints (DejaVu Sans covers the dingbats and Greek used in the examples) preserves the glyph
+appearance without the unembedded base-14 fonts.
+@end defopt
+
+@node Customization
+@chapter Customization
+
+@defopt niori-pdf-compression
+@xref{Compression}.
+@end defopt
+
+@defopt niori-pdf-gzip-program
+External gzip program used when @code{niori-pdf-compression} is
+@code{gzip} (default @code{"gzip"}).
+@end defopt
+
+@defopt niori-pdf-deflate-min-size
+Minimum stream size for compression (default 100).
+@end defopt
+
+@defopt niori-pdf-deflate-window
+LZ77 window (default and maximum 32768).
+@end defopt
+
+@defopt niori-pdf-deflate-max-chain
+LZ77 hash-chain search depth (default 16).
+@end defopt
+
+@defopt niori-pdf-pdfa-base14-substitutions
+@xref{PDF/A}.
+@end defopt
+
+@node Limitations
+@chapter Limitations and roadmap
+
+The feature set of the original library that matters for niori.el is
+ported: the object model and writer, pure-Elisp DEFLATE, Base-14 fonts
+with AFM metrics, kerning pairs and Symbol/ZapfDingbats native
+encodings, TrueType subsetting, CFF/OTF embedding with CFF-level
+subsetting, TrueType collections, Type 1 font embedding (.pfb/.pfa
+with eexec/charstring width extraction), JPEG/PNG images,
+the full vector graphics layer, document outlines, AcroForms, bar
+codes, chart helpers, glyph outline drawing, PDF/A-2b archival
+output, and a cl-typesetting style flow engine with Knuth-Plass line
+breaking and TeX-pattern hyphenation.
+
+A complete showcase is @file{examples/alice-book.el}, which typesets
+Lewis Carroll's @emph{Alice's Adventures in Wonderland} as an 86-page
+A5 book with serif body text, sans-serif headings, running heads, a
+linked table of contents and a QR colophon - all from Elisp.
+
+Remaining differences from the Common Lisp originals:
+
+@itemize
+@item Font features beyond cmap/glyf/CharStrings (hinting engines,
+GSUB/GPOS shaping) are not used.
+@item AcroForm JavaScript actions and digital signatures are out of
+scope.
+@item Hyphenation patterns ship for English (American and British),
+German, French, Spanish (one set - the RAE/ASALE orthography is
+common to all Spanish variants), Italian, Portuguese (one set for
+pt-PT and pt-BR), Esperanto, Ukrainian and Russian.  Other languages
+can be added with the same generator.
+@end itemize
+
+@node Function Index
+@unnumbered Function Index
+@printindex fn
+
+@node Variable Index
+@unnumbered Variable Index
+@printindex vr
+
+@bye
