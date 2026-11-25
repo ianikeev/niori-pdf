@@ -419,22 +419,6 @@ dropped (defensive against unusual segments)."
 
 (declare-function niori-pdf--register-font-resource "niori-pdf-fonts" (doc font))
 
-(defun niori-pdf-ttf--font-props (ff path)
-  "Metric plist for a parsed TrueType/OpenType font file FF from PATH.
-Shared by `niori-pdf-ttf-make-font' (which registers the font in a
-document) and the document-less measurement fonts."
-  (let ((upm (niori-pdf-ttf-file-units-per-em ff)))
-    (list :ttf ff
-          :file-path (expand-file-name path)
-          :otf (niori-pdf-ttf-file-cff-p ff)
-          :units-per-em upm
-          :ascender (/ (* (niori-pdf-ttf-file-ascender ff) 1000.0) upm)
-          :descender (/ (* (niori-pdf-ttf-file-descender ff) 1000.0) upm)
-          :cap-height (/ (* (niori-pdf-ttf-file-cap-height ff) 1000.0)
-                         upm)
-          :used-gids (make-hash-table :test #'eql)
-          :used-uni (make-hash-table :test #'eql))))
-
 (defun niori-pdf-ttf--font-props (ff path &optional index)
   "Metric plist for a parsed TrueType/OpenType font file FF from PATH.
 Shared by `niori-pdf-ttf-make-font' (which registers the font in a

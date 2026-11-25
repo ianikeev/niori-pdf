@@ -608,10 +608,10 @@ path afterwards."
   "Append a closed star path around (CX CY) with SIDES points, outer
 EXT-RADIUS and inner INT-RADIUS (cl-pdf's star).  Paint the path
 afterwards."
-  (let ((step (/ (* 2 niori-pdf--pi) sides))
-        (half (/ step 2.0))
-        (angle (or angle (/ niori-pdf--pi 2.0)))
-        (pts nil))
+  (let* ((step (/ (* 2 niori-pdf--pi) sides))
+         (half (/ step 2.0))
+         (angle (or angle (/ niori-pdf--pi 2.0)))
+         (pts nil))
     (dotimes (i sides)
       (let ((a (+ angle (* i step))))
         (push (list (+ cx (* ext-radius (cos a)))
