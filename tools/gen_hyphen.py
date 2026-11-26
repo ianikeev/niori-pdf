@@ -45,33 +45,33 @@ OUT = os.path.join(REPO, "niori-pdf-hyphen-data.el")
 # hyph-utf8 \hyphenmins for the others).
 LANGS = {
     "american": dict(
-        file="ushyph.txt", parser="legacy", left=2, right=3,
-        origin="classic TeX set (Frank M. Liang, Stanford dissertation 1983), "
-               "as shipped in cl-typesetting's hyphen-patterns/",
-        authors="Frank M. Liang",
-        license="freely redistributable TeX pattern set (see "
-                "tools/hyphen-sources/README.md)"),
+        file="hyph-en-us.tex", parser="hyph-utf8",
+        left=2, right=3,
+        origin="hyph-utf8 hyph-en-us.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
+        authors="See source file header",
+        license="See source file header",
+        url="https://github.com/hyphenation/tex-hyphen"),
     "german": dict(
-        file="dehyphn.txt", parser="legacy", left=2, right=2,
-        origin="classic 'dehyphn' set for the 1996 German orthography, "
-               "as shipped in cl-typesetting's hyphen-patterns/",
-        authors="German hyphenation team (Walter A. Schmidt, Bernd Raichle et al.)",
-        license="freely redistributable TeX pattern set (see "
-                "tools/hyphen-sources/README.md)"),
+        file="hyph-de-1996.tex", parser="hyph-utf8",
+        left=2, right=2,
+        origin="hyph-utf8 hyph-de-1996.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
+        authors="See source file header",
+        license="See source file header",
+        url="https://github.com/hyphenation/tex-hyphen"),
     "french": dict(
-        file="frhyph.txt", parser="legacy", left=2, right=3,
-        origin="classic French set (Raymond Seroul lineage, maintained by "
-               "Bernard Gaulle), as shipped in cl-typesetting's hyphen-patterns/",
-        authors="Raymond Seroul, Bernard Gaulle",
-        license="freely redistributable TeX pattern set (see "
-                "tools/hyphen-sources/README.md)"),
+        file="hyph-fr.tex", parser="hyph-utf8",
+        left=2, right=2,
+        origin="hyph-utf8 hyph-fr.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
+        authors="See source file header",
+        license="See source file header",
+        url="https://github.com/hyphenation/tex-hyphen"),
     "british": dict(
-        file="gbhyph.txt", parser="legacy", left=2, right=3,
-        origin="classic British set (Peter Abbott, maintained by Dominik "
-               "Wujastyk), as shipped in cl-typesetting's hyphen-patterns/",
-        authors="Peter Abbott, Dominik Wujastyk",
-        license="freely redistributable TeX pattern set (see "
-                "tools/hyphen-sources/README.md)"),
+        file="hyph-en-gb.tex", parser="hyph-utf8",
+        left=2, right=3,
+        origin="hyph-utf8 hyph-en-gb.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
+        authors="See source file header",
+        license="See source file header",
+        url="https://github.com/hyphenation/tex-hyphen"),
     "spanish": dict(
         file="hyph-es.tex", parser="hyph-utf8", left=2, right=2,
         origin="hyph-utf8 hyph-es.tex v5.0 (2019-09-24); one pattern set "
@@ -215,10 +215,10 @@ def build_header():
         ";; tools/hyphen-sources/ with full provenance in",
         ";; tools/hyphen-sources/README.md.  Per-language credits:",
         ";;",
-        ";;   american   Frank M. Liang's classic TeX set (via cl-typesetting)",
-        ";;   german     classic 'dehyphn' set, 1996 orthography (via cl-typesetting)",
-        ";;   french     classic French set, Seroul/Gaulle (via cl-typesetting)",
-        ";;   british    classic British set, Abbott/Wujastyk (via cl-typesetting)",
+        ";;   american   hyph-en-us.tex (see upstream source header)",
+        ";;   german     hyph-de-1996.tex (see upstream source header)",
+        ";;   french     hyph-fr.tex (see upstream source header)",
+        ";;   british    hyph-en-gb.tex (see upstream source header)",
         ";;   spanish    hyph-es 5.0 -- Javier Bezos, CervanTeX (MIT/X11)",
         ";;   italian    hyph-it 4.9 -- Claudio Beccari (LPPL 1.3+ / MIT)",
         ";;   portuguese hyph-pt 1.4 -- Rezende, Almeida, Araujo, Benevides (BSD-3)",
