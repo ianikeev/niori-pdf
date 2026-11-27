@@ -12,6 +12,42 @@
 
 (require 'ert)
 (require 'cl-lib)
+(require 'subr-x)
+
+(defun niori-pdf-tests--fontconfig-file (family style extension)
+  "Find FAMILY's exact STYLE font with file EXTENSION.
+Return nil when Fontconfig or a matching readable font is unavailable."
+  (when (executable-find "fc-list")
+    (with-temp-buffer
+      (let ((status
+             (process-file "fc-list" nil t nil
+                           "-f" "%{style}\t%{file}\n" family)))
+        (when (and (integerp status) (zerop status))
+          (catch 'found
+            (dolist (line (split-string (buffer-string) "\n" t))
+              (let* ((fields (split-string line "\t"))
+                     (font-style (car fields))
+                     (file (cadr fields)))
+                (when (and font-style file
+                           (string-equal-ignore-case style font-style)
+                           (string-suffix-p extension file t)
+                           (file-readable-p file))
+                  (throw 'found file))))))))))
+
+(defconst niori-pdf-tests--cff
+  (niori-pdf-tests--fontconfig-file
+   "Nimbus Sans" "Regular" ".otf")
+  "OpenType/CFF fixture.")
+
+(defconst niori-pdf-tests--ttc
+  (niori-pdf-tests--fontconfig-file
+   "WenQuanYi Zen Hei Mono" "Regular" ".ttc")
+  "TrueType collection fixture.")
+
+(defconst niori-pdf-tests--pfb
+  (niori-pdf-tests--fontconfig-file
+   "Nimbus Sans L" "Regular" ".pfb")
+  "Type 1 fixture (Nimbus Sans, Helvetica-compatible).")
 
 (defconst niori-pdf-tests--dir
   (file-name-directory (or load-file-name buffer-file-name)))
@@ -719,10 +755,9 @@ time (rect on the TOC page, XYZ destination at the heading)."
 (ert-deftest niori-pdf-cff-subset-structure ()
   "The CFF subset keeps the GID space, copies the charset and
 rebuilds a valid Top DICT."
-  (skip-unless (file-exists-p
-                "/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf"))
-  (let* ((ff (niori-pdf-ttf-read-file
-              "/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf"))
+  (skip-unless (and niori-pdf-tests--cff
+		    (file-readable-p niori-pdf-tests--cff)))
+  (let* ((ff (niori-pdf-ttf-read-file niori-pdf-tests--cff))
          (bytes (niori-pdf-ttf-file-bytes ff))
          (cffo (car (niori-pdf-ttf--table-off bytes "CFF ")))
          (cff-len (cdr (niori-pdf-ttf--table-off bytes "CFF ")))
@@ -1094,13 +1129,9 @@ after the multi-pass generate."
 
 ;;;; TrueType collections (.ttc)
 
-(defconst niori-pdf-tests--ttc
-  "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
-  "TrueType collection available on Debian-based systems.")
-
 (ert-deftest niori-pdf-ttc-collection-listing ()
   "collection-fonts lists (INDEX PS-NAME FAMILY) for each member."
-  (skip-unless (file-exists-p niori-pdf-tests--ttc))
+  (skip-unless niori-pdf-tests--ttc)
   (let ((fonts (niori-pdf-ttf-collection-fonts niori-pdf-tests--ttc)))
     (should (>= (length fonts) 2))
     (should (= (nth 0 (nth 0 fonts)) 0))
@@ -1109,7 +1140,7 @@ after the multi-pass generate."
 
 (ert-deftest niori-pdf-ttc-index-selection ()
   "read-file INDEX selects the member; out-of-range errors."
-  (skip-unless (file-exists-p niori-pdf-tests--ttc))
+  (skip-unless niori-pdf-tests--ttc)
   (let* ((f0 (niori-pdf-ttf-read-file niori-pdf-tests--ttc 0))
          (f1 (niori-pdf-ttf-read-file niori-pdf-tests--ttc 1)))
     (should (equal (niori-pdf-ttf-file-ps-name f0)
@@ -1129,9 +1160,9 @@ after the multi-pass generate."
 
 (ert-deftest niori-pdf-ttc-plist-spec-measure-and-embed ()
   "(:file PATH :index N) specs work for measurement and embedding."
-  (skip-unless (file-exists-p niori-pdf-tests--ttc))
-  (let* ((spec0 '(:file "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" :index 0))
-         (spec1 '(:file "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" :index 1))
+  (skip-unless niori-pdf-tests--ttc)
+  (let* ((spec0 (list :file niori-pdf-tests--ttc :index 0))
+         (spec1 (list :file niori-pdf-tests--ttc :index 1))
          (w0 (niori-pdf-text-width "test" spec0 12))
          (w1 (niori-pdf-text-width "test" spec1 12)))
     (should (> w0 0))
@@ -1140,7 +1171,7 @@ after the multi-pass generate."
          (page (niori-pdf-new-page doc)))
     (let ((niori-pdf--doc doc) (niori-pdf--page page))
       (niori-pdf-set-font
-       '(:file "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" :index 1) 12)
+       (list :file niori-pdf-tests--ttc :index 1) 12)
       (niori-pdf-draw-text 60 700 "TTC test"))
     (niori-pdf-save doc "/tmp/niori-test/ttc-test.pdf")
     (with-temp-buffer
@@ -1150,16 +1181,12 @@ after the multi-pass generate."
 
 ;;;; Type 1 fonts (.pfb / .pfa)
 
-(defconst niori-pdf-tests--pfb
-  "/usr/share/fonts/X11/Type1/NimbusSans-Regular.pfb"
-  "Type 1 font available on Debian-based systems (Helvetica clone).")
-
 (ert-deftest niori-pdf-type1-parse ()
   "PFB parsing extracts the name, eexec widths and bounding box."
-  (skip-unless (file-exists-p niori-pdf-tests--pfb))
+  (skip-unless niori-pdf-tests--pfb)
   (let ((t1 (niori-pdf-type1-read-file niori-pdf-tests--pfb)))
     (should (string= (niori-pdf-type1-file-font-name t1)
-                     "NimbusSans-Regular"))
+                     "NimbusSanL-Regu"))
     (should (niori-pdf-type1-file-bbox t1))
     ;; Nimbus Sans is metric-compatible with Helvetica: the AFM widths
     ;; for space/A are 278/667, and charstrings must yield the same
@@ -1174,7 +1201,7 @@ after the multi-pass generate."
 
 (ert-deftest niori-pdf-type1-measure ()
   "Type 1 fonts measure like their metric-compatible base-14 font."
-  (skip-unless (file-exists-p niori-pdf-tests--pfb))
+  (skip-unless niori-pdf-tests--pfb)
   (let ((w-t1 (niori-pdf-text-width "Hello World" niori-pdf-tests--pfb 10))
         (w-helv (niori-pdf-text-width "Hello World" "Helvetica" 10)))
     (should (> w-t1 0))
@@ -1183,7 +1210,7 @@ after the multi-pass generate."
 
 (ert-deftest niori-pdf-type1-embed-and-draw ()
   "A .pfb font embeds as /Subtype /Type1 with /FontFile and draws."
-  (skip-unless (file-exists-p niori-pdf-tests--pfb))
+  (skip-unless niori-pdf-tests--pfb)
   (let* ((doc (niori-pdf-make-document))
          (page (niori-pdf-new-page doc)))
     (let ((niori-pdf--doc doc) (niori-pdf--page page))
@@ -1202,7 +1229,7 @@ after the multi-pass generate."
         (should (string-match-p "/FontFile" s))
         (should (string-match-p "/Length1" s))
         (should (string-match-p "/Length3" s))
-        (should (string-match-p "NimbusSans-Regular" s))))))
+        (should (string-match-p "NimbusSanL-Regu" s))))))
 
 ;;;; PDF/A-2b
 

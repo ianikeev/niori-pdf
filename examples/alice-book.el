@@ -12,7 +12,7 @@
 ;;
 ;;   * A5 page with classic book margins
 ;;   * body text in P052 (URW's Palatino revival), 9.7/13.6,
-;;     Knuth-Plass justification with American English TeX
+;;     Knuth-Plass justification with British English TeX
 ;;     hyphenation
 ;;   * italic runs (the text's _underscore markup_) in P052 Italic
 ;;   * chapter openers: letterspaced sans numerals, sans-serif titles
@@ -32,6 +32,7 @@
 ;;; Code:
 
 (require 'niori-pdf-flow)
+(require 'font-utils)
 (require 'niori-pdf-barcodes)
 (require 'niori-pdf-qrcode)
 (require 'niori-pdf-outlines)
@@ -54,13 +55,13 @@
 ;;; Fonts: four OpenType/CFF faces, all subsetted at the CFF level
 
 (defconst alice-serif
-  "/usr/share/fonts/opentype/urw-base35/P052-Roman.otf")
+  (niori-example-fontconfig-file "P052" "Roman" ".otf"))
 (defconst alice-serif-italic
-  "/usr/share/fonts/opentype/urw-base35/P052-Italic.otf")
+  (niori-example-fontconfig-file "P052" "Italic" ".otf"))
 (defconst alice-sans
-  "/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf")
+  (niori-example-fontconfig-file "Nimbus Sans" "Regular" ".otf"))
 (defconst alice-sans-bold
-  "/usr/share/fonts/opentype/urw-base35/NimbusSans-Bold.otf")
+  (niori-example-fontconfig-file "Nimbus Sans" "Bold" ".otf"))
 
 ;;; Geometry (points): A5 with classic book margins
 
@@ -386,7 +387,7 @@ no head on chapter opener pages."
    "This book was typeset entirely with niori-pdf, a pure Emacs Lisp
 port of Marc Battyani's cl-pdf, running inside GNU Emacs.  The text
 is set in P052, URW's Palatino revival, at 9.7/13.6 with Knuth-Plass
-justification and American English TeX hyphenation; chapter headings
+justification and British English TeX hyphenation; chapter headings
 and running heads are set in Nimbus Sans.  All four faces are
 OpenType/CFF fonts, subsetted to the glyphs actually used and
 embedded by niori-pdf's own CFF subsetter.  The finished book is a
@@ -639,9 +640,9 @@ measure."
               :margins '(46 50 46 54)
               :header-fn #'alice--header
               :footer-fn #'alice--footer
-              :default-font "/usr/share/fonts/opentype/urw-base35/P052-Roman.otf"
+              :default-font alice-serif
               :default-size 9.7
-              :language 'american
+              :language 'british
               :pdfa alice-pdfa
               :title "Alice's Adventures in Wonderland"
               :author "Lewis Carroll"

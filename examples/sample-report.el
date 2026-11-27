@@ -39,21 +39,40 @@
              (concat (file-name-directory load-file-name) ".."))
 (add-to-list 'load-path (file-name-directory load-file-name))
 (require 'niori-pdf)
-(require 'udhr-texts)
+(require 'hyphenation-texts)
+(require 'font-utils)
 
-(defconst sample-ttf "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+(defconst sample-ttf
+  (niori-example-fontconfig-file "DejaVu Sans" "Book" ".ttf")
   "TrueType font used for the embedding demo.")
-(defconst sample-ttf-bold "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+(defconst sample-ttf-bold
+  (niori-example-fontconfig-file "DejaVu Sans" "Bold" ".ttf")
   "Bold TrueType font used for the embedding demo.")
-(defconst sample-otf "/usr/share/fonts/opentype/urw-base35/NimbusSans-Regular.otf"
+(defconst sample-ttf-oblique
+  (niori-example-fontconfig-file "DejaVu Sans" "Oblique" ".ttf")
+  "Oblique TrueType font used for PDF/A substitution.")
+(defconst sample-ttf-mono
+  (niori-example-fontconfig-file "DejaVu Sans Mono" "Book" ".ttf")
+  "Monospaced TrueType font used for PDF/A substitution.")
+(defconst sample-otf
+  (niori-example-fontconfig-file "Nimbus Sans" "Regular" ".otf")
   "OpenType/CFF font used for the embedding demo.")
-(defconst sample-ttc "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+(defconst sample-ttc
+  (niori-example-fontconfig-file "WenQuanYi Zen Hei Mono" "Regular" ".ttc")
   "TrueType collection used for the .ttc demo.")
 (defconst sample-ttc-index 1
   "Collection member drawn in the demo (WenQuanYi Zen Hei Mono).")
-(defconst sample-pfb "/usr/share/fonts/X11/Type1/NimbusRoman-Regular.pfb"
+(defconst sample-pfb
+  (niori-example-fontconfig-file "Nimbus Roman No9 L" "Regular" ".pfb")
   "Type 1 font used for the embedding demo (Times clone).")
-(defconst sample-pfb-sans "/usr/share/fonts/X11/Type1/NimbusSans-Regular.pfb"
+(defconst sample-pfb-bold
+  (niori-example-fontconfig-file "Nimbus Roman No9 L" "Medium" ".pfb")
+  "Bold Type 1 font used for PDF/A substitution.")
+(defconst sample-pfb-italic
+  (niori-example-fontconfig-file "Nimbus Roman No9 L" "Regular Italic" ".pfb")
+  "Italic Type 1 font used for PDF/A substitution.")
+(defconst sample-pfb-sans
+  (niori-example-fontconfig-file "Nimbus Sans L" "Regular" ".pfb")
   "Second Type 1 font for the demo (Helvetica clone).")
 
 (defvar sample-pdfa
@@ -79,11 +98,11 @@ forbids unembedded fonts, including Symbol/ZapfDingbats).")
   (setq niori-pdf-pdfa-base14-substitutions
         `(("Helvetica" . ,sample-ttf)
           ("Helvetica-Bold" . ,sample-ttf-bold)
-          ("Helvetica-Oblique" . "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf")
-          ("Courier" . "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
+          ("Helvetica-Oblique" . ,sample-ttf-oblique)
+          ("Courier" . ,sample-ttf-mono)
           ("Times-Roman" . ,sample-pfb)
-          ("Times-Bold" . "/usr/share/fonts/X11/Type1/NimbusRoman-Bold.pfb")
-          ("Times-Italic" . "/usr/share/fonts/X11/Type1/NimbusRoman-Italic.pfb")
+          ("Times-Bold" . ,sample-pfb-bold)
+          ("Times-Italic" . ,sample-pfb-italic)
           ("Symbol" . ,sample-ttf)
           ("ZapfDingbats" . ,sample-ttf))))
 
@@ -467,49 +486,30 @@ middle dots at their LANG break points."
 (defvar sample-hyphen-langs
   (list
    (list "American English" 'american "american" "Helvetica"
-         "One pattern set per side of the Atlantic: the American set
-keeps the American spelling of the Declaration's official text.")
+         "Henry David Thoreau, Walking (1862).")
    (list "British English" 'british "british" "Helvetica"
-         "The same two paragraphs with the British patterns - compare
-the hyphenation points of the same words with the American section.")
+         "Jerome K. Jerome, Three Men in a Boat (1889).")
    (list "German" 'german "german" "Helvetica"
-         "The 1996-orthography German patterns (dehyphn); German is
-free about breaking compound nouns at any member boundary.")
+         "Theodor Storm, Der Schimmelreiter (1888).")
    (list "French" 'french "french" "Helvetica"
-         "The frhyph patterns; French syllabication follows the
-pronunciation, not the etymology.")
+         "Guy de Maupassant, Le Horla (1887).")
    (list "Spanish" 'spanish "spanish" "Helvetica"
-         "One set for every Spanish variant: the RAE/ASALE
-orthography is common to es-ES, es-MX, es-AR and the rest.")
+         "Benito Pérez Galdós, Fortunata y Jacinta (1887).")
    (list "Italian" 'italian "italian" "Helvetica"
-         "Claudio Beccari's Italian patterns (hyph-it, hyph-utf8).")
-   (list "Portuguese (Brazilian text)" 'portuguese "portuguese"
-         "Helvetica"
-         "A single pattern set covers both sides of the Atlantic
-(pt-PT and pt-BR); this is the Brazilian UDHR text.")
-   (list "Portuguese (European text)" 'portuguese "portuguese-pt"
-         "Helvetica"
-         "The European UDHR text with the same Portuguese patterns.")
+         "Carlo Collodi, Le avventure di Pinocchio (1883).")
+   (list "Portuguese" 'portuguese "portuguese" "Helvetica"
+         "Machado de Assis, O Alienista (1882).")
    (list "Esperanto" 'esperanto "esperanto" sample-otf
-         "The Esperanto patterns need a Unicode font: the
-circumflexed letters and the breve u exist outside WinAnsi, so this
-paragraph is set in the embedded OpenType/CFF Nimbus Sans - the CFF
-subsetter pulls the Esperanto glyphs out of the 855-glyph font.")
+         "L. L. Zamenhof, Dua Libro de l’ Lingvo Internacia (1888).")
    (list "Ukrainian" 'ukrainian "ukrainian" sample-otf
-         "Maksym Polyakov's Ukrainian patterns, set in the embedded
-OpenType/CFF Nimbus Sans (Cyrillic is outside the base-14 encodings;
-the CFF subset carries the Ukrainian glyphs only).")
+         "Mykhailo Kotsiubynsky, Intermezzo (1909).")
    (list "Russian" 'russian "russian" sample-otf
-         "Alexander Lebedev's Russian patterns (generated with
-patgen from a 990,000-word list), set in the embedded OpenType/CFF
-Nimbus Sans - the Russian glyphs are subsetted out of the same OTF
-file that serves the Esperanto and Ukrainian paragraphs above."))
-  "Language demo entries: (TITLE LANG UDHR-KEY FONT NOTE).")
+         "Anton Chekhov, Дама с собачкой (1899)."))
+  "Language demo entries: (TITLE LANG TEXT-KEY FONT NOTE).")
 
 (defun sample-hyphenation-section ()
   "Section 9: hyphenation in the ten shipped languages.
-For every language the first two paragraphs of the preamble of the
-Universal Declaration of Human Rights are set with that language's
+Literary excerpts in each language are set with that language's
 patterns; the break points of the longest words are shown with
 middle dots."
   (niori-pdf-flow-heading "9.  International hyphenation" :level 1)
@@ -523,29 +523,29 @@ margin.  Build the default report (without the flag) to see the same
 text set with hyphenation and compare the two.  ")
            "niori-pdf ships
 pattern sets for American English, British English, German, French,
-Spanish, Italian, Portuguese (one set for European and Brazilian
-Portuguese), Esperanto, Ukrainian and Russian.  The document default
-is set with the :language key and each paragraph can override it.
-The examples below set the first two paragraphs of the preamble of
-the Universal Declaration of Human Rights in every language with
-its own patterns; the dots in the Break points lines mark where the
+Spanish, Italian, Portuguese, Esperanto, Ukrainian and Russian.
+The document default is set with the :language key and each paragraph
+can override it.  The examples below use literary excerpts in their
+original languages; the dots in the Break points lines mark where the
 patterns allow a hyphen (word, not paragraph, break points).")
    :align 'justified :space-after 10)
   (let ((idx 0))
     (dolist (entry sample-hyphen-langs)
       (let* ((title (nth 0 entry))
              (lang (nth 1 entry))
-             (udhr-key (nth 2 entry))
+             (text-key (nth 2 entry))
              (font (nth 3 entry))
              (note (nth 4 entry))
-             (paras (symbol-value (intern (concat "udhr-texts--"
-                                                  udhr-key))))
+             (paras (symbol-value
+                     (intern (concat "hyphenation-texts--"
+                                     text-key))))
              (heading
               (format "9.%d  %s" (cl-incf idx) title)))
         (niori-pdf-flow-heading heading :level 2)
         (niori-pdf-flow-paragraph note
+				  :font font
                                   :size 9 :color '(0.35 0.4 0.47)
-                                  :align 'justified :space-after 6)
+                                  :space-after 4)
         (dolist (para paras)
           (niori-pdf-flow-paragraph para :font font :size 9.5
                                     :align 'justified :language lang
@@ -557,12 +557,9 @@ patterns allow a hyphen (word, not paragraph, break points).")
          :color '(0.45 0.5 0.58) :space-after 10))))
   (niori-pdf-flow-paragraph
    "The hyphenation points come from the pattern files shipped with
-cl-typesetting (the four original sets) and from the TeX Live
-hyph-utf8 project (Spanish, Italian, Portuguese, Esperanto,
-Ukrainian, Russian); words shorter than the language's minima are
-never broken, and the three-pass TeX scheme (pretolerance,
-tolerance, emergency stretch) decides when hyphenation is used at
-all."
+niori-pdf. Words shorter than the language's minima are never broken,
+and the three-pass TeX scheme (pretolerance, tolerance, emergency
+stretch) decides when hyphenation is used at all."
    :align 'justified :size 9 :color '(0.35 0.4 0.47) :space-after 8))
 
 
