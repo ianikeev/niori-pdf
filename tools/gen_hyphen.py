@@ -33,11 +33,22 @@ Output format: one defconst per language
 consumed by niori-pdf-hyphen.el, which compiles it into per-first-letter
 buckets at load time.
 """
-import re, os, sys, argparse
+import re, os, sys, argparse, hashlib
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "tools", "hyphen-sources")
 OUT = os.path.join(REPO, "niori-pdf-hyphen-data.el")
+LOCK = os.path.join(SRC, "SOURCES.lock")
+
+UPSTREAM_REPOSITORY = "https://github.com/hyphenation/tex-hyphen.git"
+PINNED_REVISION = "5684c0f51c0b81133db2efbe60a408b4155a3ff5"
+
+PINNED_SOURCES = {
+    "american": "hyph-en-us.tex",
+    "german": "hyph-de-1996.tex",
+    "french": "hyph-fr.tex",
+    "british": "hyph-en-gb.tex",
+}
 
 # language -> metadata.  file is relative to tools/hyphen-sources/.
 # left/right are the TeX \lefthyphenmin/\righthyphenmin (shipped data
@@ -48,29 +59,29 @@ LANGS = {
         file="hyph-en-us.tex", parser="hyph-utf8",
         left=2, right=3,
         origin="hyph-utf8 hyph-en-us.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
-        authors="See source file header",
-        license="See source file header",
+        authors='Gerard D.C. Kuiken',
+        license='Royalty-free; preserve copyright and permission notice',
         url="https://github.com/hyphenation/tex-hyphen"),
     "german": dict(
         file="hyph-de-1996.tex", parser="hyph-utf8",
         left=2, right=2,
         origin="hyph-utf8 hyph-de-1996.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
-        authors="See source file header",
-        license="See source file header",
+        authors='Stephan Hennig, Werner Lemberg, Günter Milde, Sander van Geloven, Georg Pfeiffer, Gisbert W. Selke, Tobias Wendorf, Keno Wehr',
+        license='MIT',
         url="https://github.com/hyphenation/tex-hyphen"),
     "french": dict(
         file="hyph-fr.tex", parser="hyph-utf8",
         left=2, right=2,
         origin="hyph-utf8 hyph-fr.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
-        authors="See source file header",
-        license="See source file header",
+        authors='Daniel Flipo, Bernard Gaulle, Arthur Reutenauer',
+        license='MIT',
         url="https://github.com/hyphenation/tex-hyphen"),
     "british": dict(
         file="hyph-en-gb.tex", parser="hyph-utf8",
         left=2, right=3,
         origin="hyph-utf8 hyph-en-gb.tex (upstream revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5)",
-        authors="See source file header",
-        license="See source file header",
+        authors='Dominik Wujastyk, Graham Toal',
+        license='MIT',
         url="https://github.com/hyphenation/tex-hyphen"),
     "spanish": dict(
         file="hyph-es.tex", parser="hyph-utf8", left=2, right=2,
@@ -113,6 +124,106 @@ LANGS = {
         license="LPPL 1.2+",
         url="https://github.com/hyphenation/tex-hyphen"),
 }
+
+
+def verify_source_lock():
+    """Verify the four migrated sources against SOURCES.lock."""
+    try:
+        with open(LOCK, encoding="utf-8") as fh:
+            lines = fh.readlines()
+    except OSError as exc:
+        raise SystemExit(f"Cannot read source lock {LOCK}: {exc}")
+
+    metadata = {}
+    checksums = {}
+
+    for lineno, raw_line in enumerate(lines, 1):
+        line = raw_line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        fields = line.split()
+
+        if len(fields) == 2 and fields[0] in ("repository", "revision"):
+            key, value = fields
+            if key in metadata:
+                raise SystemExit(
+                    f"{LOCK}:{lineno}: duplicate {key} entry"
+                )
+            metadata[key] = value
+
+        elif (
+            len(fields) == 2
+            and re.fullmatch(r"[0-9a-f]{64}", fields[0])
+        ):
+            digest, filename = fields
+            if filename in checksums:
+                raise SystemExit(
+                    f"{LOCK}:{lineno}: duplicate checksum for {filename}"
+                )
+            checksums[filename] = digest
+
+        else:
+            raise SystemExit(
+                f"{LOCK}:{lineno}: unrecognized lock-file entry"
+            )
+
+    if metadata.get("repository") != UPSTREAM_REPOSITORY:
+        raise SystemExit(
+            f"{LOCK}: unexpected upstream repository: "
+            f"{metadata.get('repository')!r}"
+        )
+
+    if metadata.get("revision") != PINNED_REVISION:
+        raise SystemExit(
+            f"{LOCK}: expected revision {PINNED_REVISION}, "
+            f"found {metadata.get('revision')!r}"
+        )
+
+    expected_files = set(PINNED_SOURCES.values())
+
+    if set(checksums) != expected_files:
+        missing = expected_files - set(checksums)
+        unexpected = set(checksums) - expected_files
+        raise SystemExit(
+            f"{LOCK}: source list mismatch; "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}"
+        )
+
+    for language, filename in PINNED_SOURCES.items():
+        meta = LANGS[language]
+
+        if meta["file"] != filename:
+            raise SystemExit(
+                f"LANGS[{language!r}] references {meta['file']!r}; "
+                f"expected {filename!r}"
+            )
+
+        if PINNED_REVISION not in meta.get("origin", ""):
+            raise SystemExit(
+                f"LANGS[{language!r}] does not identify "
+                f"the pinned upstream revision"
+            )
+
+        source_path = os.path.join(SRC, filename)
+
+        try:
+            with open(source_path, "rb") as fh:
+                actual = hashlib.sha256(fh.read()).hexdigest()
+        except OSError as exc:
+            raise SystemExit(f"Cannot read source {filename}: {exc}")
+
+        expected = checksums[filename]
+
+        if actual != expected:
+            raise SystemExit(
+                f"SHA-256 mismatch for {filename}\n"
+                f"  expected: {expected}\n"
+                f"  actual:   {actual}\n"
+                "The source file may have changed. Check SOURCES.lock "
+                "and the pinned upstream revision."
+            )
 
 
 def parse_legacy(path):
@@ -205,46 +316,36 @@ def elip(s):
 
 
 def build_header():
-    return [
+    lines = [
         ";;; niori-pdf-hyphen-data.el --- TeX hyphenation patterns for niori-pdf -*- lexical-binding: t; -*-",
         "",
         ";; Data-only file generated by tools/gen_hyphen.py.  Do not edit by hand;",
         ";; regenerate with:  python3 tools/gen_hyphen.py",
         ";;",
-        ";; TeX hyphenation patterns (Liang's algorithm).  Sources live in",
-        ";; tools/hyphen-sources/ with full provenance in",
-        ";; tools/hyphen-sources/README.md.  Per-language credits:",
+        ";; TeX hyphenation patterns (Liang's algorithm). Sources and their",
+        ";; upstream headers are kept in tools/hyphen-sources/; see its README",
+        ";; and THIRD-PARTY-NOTICES for provenance and license information.",
+        ";; Per-language credits (license details are in the source headers):",
         ";;",
-        ";;   american   hyph-en-us.tex (see upstream source header)",
-        ";;   german     hyph-de-1996.tex (see upstream source header)",
-        ";;   french     hyph-fr.tex (see upstream source header)",
-        ";;   british    hyph-en-gb.tex (see upstream source header)",
-        ";;   spanish    hyph-es 5.0 -- Javier Bezos, CervanTeX (MIT/X11)",
-        ";;   italian    hyph-it 4.9 -- Claudio Beccari (LPPL 1.3+ / MIT)",
-        ";;   portuguese hyph-pt 1.4 -- Rezende, Almeida, Araujo, Benevides (BSD-3)",
-        ";;   esperanto  hyph-eo 1.0 -- Sergio Pokrovskij (LPPL 1+)",
-        ";;   ukrainian  hyph-uk -- Maksym Polyakov (MIT / LPPL)",
-        ";;   russian    hyph-ru -- Alexander I. Lebedev (LPPL 1.2+)",
+    ]
+    for lang, meta in LANGS.items():
+        authors = meta.get("authors", "see upstream source header")
+        license_name = meta.get("license", "see upstream source header")
+        lines.append(f";;   {lang:<11} {authors} ({license_name})")
+    lines += [
         ";;",
-        ";; The hyph-* sources are from the TeX Live hyph-utf8 project:",
-        ";; https://github.com/hyphenation/tex-hyphen -- each upstream file",
-        ";; in tools/hyphen-sources/ carries its license header verbatim.",
+        ";; Individual pattern copyrights and licenses remain with their",
+        ";; respective authors and copyright holders. The niori-pdf project",
+        ";; does not claim exclusive copyright in this generated collection.",
         ";;",
         ";; Each language constant is (LEFTMIN RIGHTMIN PATTERNS EXCEPTIONS):",
-        ";;   PATTERNS   list of (LETTERS . DIGITS); LETTERS is the pattern's",
-        ";;              letter sequence, DIGITS is a same-length+1 string of",
-        ";;              break-point values, '.' meaning no value.  A DIGITS",
-        ";;              position i applies to the gap before LETTERS index i",
-        ";;              when the pattern matches a word at that offset.",
-        ";;   EXCEPTIONS list of hyphenated words (\"as-so-ciate\") that",
-        ";;              override the patterns.",
-        "",
-        ";; Copyright (C) 2026 niori-pdf authors",
+        ";;   PATTERNS   list of (LETTERS . DIGITS); DIGITS has one slot per gap.",
+        ";;   EXCEPTIONS list of hyphenated words that override the patterns.",
         "",
         ";;; Code:",
         "",
     ]
-
+    return lines
 
 def build_body(only=None):
     lines = []
@@ -284,6 +385,8 @@ def main():
     ap.add_argument("--lang", metavar="LANG", choices=sorted(LANGS),
                     help="print only this language's defconst to stdout")
     args = ap.parse_args()
+
+    verify_source_lock()
 
     if args.lang:
         sys.stdout.write("\n".join(build_body(only=args.lang)) + "\n")

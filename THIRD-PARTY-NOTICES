@@ -80,3 +80,66 @@ The provenance and redistribution terms for examples/udhr-texts.el have
 not yet been established.  This file is not relicensed by this project
 notice and should be reviewed or removed before a release that distributes
 it.
+
+HYPHENATION PATTERN DATA
+========================
+
+The pattern data in `niori-pdf-hyphen-data.el` is derived from the
+language-specific files in `tools/hyphen-sources/`. Those source files are
+distributed with their upstream copyright and license headers intact. The
+four migrated sources are pinned to https://github.com/hyphenation/tex-hyphen, revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5.
+
+Individual pattern copyrights and license terms remain with their respective
+authors and copyright holders. The generated Elisp file is a transformed
+collection and does not replace or supersede the source-file notices.
+
+American English (`hyph-en-us.tex`)
+-----------------------------------
+
+Copyright (C) 1990, 2004, 2005 Gerard D.C. Kuiken.
+
+Copying and distribution of this file, with or without modification, are
+permitted in any medium without royalty provided the copyright notice and
+this notice are preserved.
+
+German, French, and British English hyphenation patterns
+------------------------------------------------------------
+
+The following pattern files are distributed under the MIT License. Their
+upstream headers are retained in `tools/hyphen-sources/`.
+
+German (`hyph-de-1996.tex`)
+Copyright (c) 2013-2024 Stephan Hennig, Werner Lemberg, Günter Milde,
+Sander van Geloven, Georg Pfeiffer, Gisbert W. Selke, Tobias Wendorf,
+and Keno Wehr.
+
+French (`hyph-fr.tex`)
+Copyright (c) 1994-2002 Daniel Flipo and Bernard Gaulle; 2016 Arthur
+Reutenauer.
+
+British English (`hyph-en-gb.tex`)
+Copyright (c) 1992, 1996, 2005, 2016 Dominik Wujastyk and Graham Toal.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The British English upstream header distinguishes the Oxford University Press
+source word list (not redistributed here) from the resulting pattern file.
+The pattern file itself may be distributed.
