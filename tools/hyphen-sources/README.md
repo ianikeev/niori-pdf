@@ -70,18 +70,29 @@ reproducibility.
 ## License compliance
 
 The applicable license and redistribution conditions are those stated
-by each upstream source. Attribution is recorded in this README, in the
-source files where supplied, in `THIRD-PARTY-NOTICES`, and in the
-generated `niori-pdf-hyphen-data.el` header.
+by each upstream source. The per-language attribution and license
+choices are summarized above and in `../../THIRD-PARTY-NOTICES`.
+The original source files, including their upstream headers, are retained
+in this directory.
 
-The LPPL-licensed pattern sets (Italian, Esperanto, and Russian) are
-distributed as independent pattern files, not as modified LaTeX code.
-LPPL permits distribution of such independent files. If an LPPL-covered
-pattern file is modified, the modified file must be renamed in accordance
-with the LPPL requirements.
+For Italian and Ukrainian, this distribution relies on the MIT alternative
+explicitly offered by their respective upstream source headers. The
+Esperanto and Russian pattern sources are distributed under the LPPL terms
+identified in their headers (LPPL 1 or later, and LPPL 1.2 or later,
+respectively). A verbatim copy of LPPL 1.3c is included at
+`../../LICENSES/LPPL-1.3c.txt`.
+
+The generated Elisp data is produced by transforming the upstream pattern
+sources. See `../gen_hyphen.py` for the transformation and
+`SOURCES.lock` for the checksums of the four migrated source files.
+The project retains the complete upstream source files alongside the
+generated data. This documentation records provenance and license
+information; it is not a legal opinion on the classification of the
+generated data under the LPPL.
 
 For the complete third-party copyright and license notices, see
 `../../THIRD-PARTY-NOTICES`.
+
 ## Where the runtime hooks in
 
 `niori-pdf-hyphen.el` consumes `(LEFTMIN RIGHTMIN PATTERNS EXCEPTIONS)`

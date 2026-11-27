@@ -69,29 +69,21 @@ included with this eBook or online at www.gutenberg.org. If you are
 not located in the United States, you’ll have to check the laws of the
 country where you are located before using this ebook.
 
-Items intentionally not covered by this notice file
-----------------------------------------------------
-The licensing and provenance of the language-specific pattern data in
-niori-pdf-hyphen-data.el are not addressed here.  That file is excluded
-from the present licensing update pending a separate pattern-by-pattern
-review.
-
-The provenance and redistribution terms for examples/udhr-texts.el have
-not yet been established.  This file is not relicensed by this project
-notice and should be reviewed or removed before a release that distributes
-it.
-
 HYPHENATION PATTERN DATA
 ========================
 
-The pattern data in `niori-pdf-hyphen-data.el` is derived from the
-language-specific files in `tools/hyphen-sources/`. Those source files are
-distributed with their upstream copyright and license headers intact. The
-four migrated sources are pinned to https://github.com/hyphenation/tex-hyphen, revision 5684c0f51c0b81133db2efbe60a408b4155a3ff5.
+The pattern data in `niori-pdf-hyphen-data.el` is generated from the
+language-specific source files in `tools/hyphen-sources/` by
+`tools/gen_hyphen.py`. The source files retain their upstream copyright
+and license headers. Four migrated sources are pinned to
+https://github.com/hyphenation/tex-hyphen at revision
+5684c0f51c0b81133db2efbe60a408b4155a3ff5; their checksums are recorded
+in `tools/hyphen-sources/SOURCES.lock`.
 
-Individual pattern copyrights and license terms remain with their respective
-authors and copyright holders. The generated Elisp file is a transformed
-collection and does not replace or supersede the source-file notices.
+The generated Elisp data is a transformed collection of pattern data.
+It does not replace the upstream source files or their copyright and
+license notices. See `tools/hyphen-sources/README.md` for source
+provenance and the generation process.
 
 American English (`hyph-en-us.tex`)
 -----------------------------------
@@ -102,11 +94,12 @@ Copying and distribution of this file, with or without modification, are
 permitted in any medium without royalty provided the copyright notice and
 this notice are preserved.
 
-German, French, and British English hyphenation patterns
-------------------------------------------------------------
+MIT-licensed pattern files
+--------------------------
 
-The following pattern files are distributed under the MIT License. Their
-upstream headers are retained in `tools/hyphen-sources/`.
+The following files are distributed under the MIT License. For Italian
+and Ukrainian, this distribution relies on the MIT licensing alternative
+stated in their upstream headers.
 
 German (`hyph-de-1996.tex`)
 Copyright (c) 2013-2024 Stephan Hennig, Werner Lemberg, Günter Milde,
@@ -118,7 +111,21 @@ Copyright (c) 1994-2002 Daniel Flipo and Bernard Gaulle; 2016 Arthur
 Reutenauer.
 
 British English (`hyph-en-gb.tex`)
-Copyright (c) 1992, 1996, 2005, 2016 Dominik Wujastyk and Graham Toal.
+Copyright (C) 1992, 1996, 2005, 2016 Dominik Wujastyk and Graham Toal.
+
+Spanish (`hyph-es.tex`)
+Copyright (C) 1993, 1997 Javier Bezos, 2001-2019 Javier Bezos,
+CervanTeX.
+
+The upstream header also credits Francesc Carmona for portions of
+the pattern data, with permission to use those portions without
+restrictions.
+
+Italian (`hyph-it.tex`)
+Copyright (C) 2008-2011 Claudio Beccari.
+
+Ukrainian (`hyph-uk.tex`)
+Copyright (C) 1998-2001 Maksym Polyakov.
 
 MIT License
 
@@ -143,3 +150,52 @@ SOFTWARE.
 The British English upstream header distinguishes the Oxford University Press
 source word list (not redistributed here) from the resulting pattern file.
 The pattern file itself may be distributed.
+
+Portuguese (`hyph-pt.tex`) — BSD 3-Clause License
+-------------------------------------------------
+
+Copyright (C) 1987, 1994, 1996, 2015 Pedro J. de Rezende,
+1996, 2015 J. Joao Dias Almeida, 2024 Leonardo Araujo and Aline Benevides.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+3. Neither the name of the University of Campinas, of the University of Minho
+   nor the names of its contributors may be used to endorse or promote
+   products derived from this software without specific prior written
+   permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL PEDRO J. DE
+REZENDE OR J.JOAO DIAS ALMEIDA BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+LPPL-licensed pattern files
+---------------------------
+
+Esperanto (`hyph-eo.tex`)
+Copyright (C) 1999 Sergei B. Pokrovsky (Sergio Pokrovskij).
+Upstream license: LPPL 1 or later.
+
+Russian (`hyph-ru.tex`)
+Copyright (C) 1999-2003 Alexander I. Lebedev.
+Upstream license: LPPL 1.2 or later.
+
+The complete, unmodified text of the current LPPL version 1.3c is
+provided in `LICENSES/LPPL-1.3c.txt`. The upstream source files and
+their original license declarations are retained in
+`tools/hyphen-sources/`. The LPPL license text itself is reproduced
+verbatim and has not been modified.
