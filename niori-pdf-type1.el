@@ -205,11 +205,12 @@ Handles both `/Key 109 def' and `/Key [109]' array forms."
 (defun niori-pdf-type1--find-bbox (text)
   "Return the /FontBBox of clear text TEXT as a 4-element list."
   (let ((m (string-match
-            "/FontBBox[ \t\n\r]*{[ \t\n\r]*\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)"
+            "/FontBBox[ \t\n\r]*\\(?:{\\|\\[\\)[ \t\n\r]*\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]+\\(-?[0-9]+\\(?:\\.[0-9]+\\)?\\)[ \t\n\r]*\\(?:}\\|\\]\\)"
             text)))
     (when m
-      (mapcar (lambda (k) (niori-pdf-type1--parse-number
-                           (match-string k text)))
+      (mapcar (lambda (k)
+                (niori-pdf-type1--parse-number
+                 (match-string k text)))
               '(1 2 3 4)))))
 
 (defun niori-pdf-type1--charstring-numbers (bytes pos limit)
