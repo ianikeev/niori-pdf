@@ -17,6 +17,15 @@ glyph subsetting, PNG decoding and the block layout engine are all
 implemented in Elisp using built-in functions only.  The sole dependency
 is Emacs itself (`emacs "27.1"`).
 
+### AI Assistance
+
+The initial port of this codebase from Common Lisp to Emacs Lisp was performed 
+with the assistance of a Large Language Model GLM-5.3-Flash by Z.ai. The LLM 
+was used to translate the core logic and data structures.
+
+All AI-generated code was subsequently reviewed, adapted, and tested by Igor 
+Anikeev. Any errors in the port are my own.
+
 ## Features
 
 | Area | What you get |
