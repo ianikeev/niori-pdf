@@ -79,7 +79,17 @@ test:
 	$(EMACS) --batch -L . -l test/niori-pdf-tests.el \
 	-f ert-run-tests-batch-and-exit
 
-check: compile test
+# Hyphenation pattern pipeline (tools/gen_hyphen.py): verify that the
+# shipped niori-pdf-hyphen-data.el matches the upstream sources under
+# tools/hyphen-sources/.  Run `make patterns-regen` after editing a
+# source or the generator, then `make check`.
+patterns:
+	python3 tools/gen_hyphen.py --check
+
+patterns-regen:
+	python3 tools/gen_hyphen.py
+
+check: compile test patterns
 
 clean:
 	rm -f $(ELC) niori-pdf.info docs/niori-pdf.pdf
@@ -88,7 +98,7 @@ clean:
 # Release tarball: compiled info included, .elc excluded (MELPA rebuilds).
 dist: clean all
 	mkdir -p $(DIST)
-	cp -r $(ELS) docs examples test LICENSE README.md Makefile niori-pdf.info $(DIST)/
+	cp -r $(ELS) docs examples test tools LICENSE README.md Makefile niori-pdf.info $(DIST)/
 	tar czf $(DIST).tar.gz $(DIST)
 	rm -rf $(DIST)
 	@echo "$(DIST).tar.gz ready"
