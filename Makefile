@@ -31,19 +31,19 @@ examples: $(EXAMPLES) | /tmp/niori-test
 /tmp/niori-test:
 	mkdir -p $@
 
-examples/sample-report.pdf: examples/sample-report.el examples/udhr-texts.el $(ELS) $(ELC) | /tmp/niori-test
+examples/sample-report.pdf: examples/sample-report.el examples/hyphenation-texts.el examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $<
 	cp /tmp/niori-test/$(notdir $@) $@
 
-examples/sample-report-nohyphen.pdf: examples/sample-report.el examples/udhr-texts.el $(ELS) $(ELC) | /tmp/niori-test
+examples/sample-report-nohyphen.pdf: examples/sample-report.el examples/hyphenation-texts.el examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $< -- --no-hyphenation
 	cp /tmp/niori-test/$(notdir $@) $@
 
-examples/sample-report-pdfa.pdf: examples/sample-report.el examples/udhr-texts.el $(ELS) $(ELC) | /tmp/niori-test
+examples/sample-report-pdfa.pdf: examples/sample-report.el examples/hyphenation-texts.el examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $< -- --pdfa
 	cp /tmp/niori-test/$(notdir $@) $@
 
-examples/sample-report-nohyphen-pdfa.pdf: examples/sample-report.el examples/udhr-texts.el $(ELS) $(ELC) | /tmp/niori-test
+examples/sample-report-nohyphen-pdfa.pdf: examples/sample-report.el examples/hyphenation-texts.el examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $< -- --pdfa --no-hyphenation
 	cp /tmp/niori-test/$(notdir $@) $@
 
@@ -55,11 +55,11 @@ examples/niori-pdf-evaluation-nohyphen.pdf: examples/cl-pdf-evaluation.el $(ELS)
 	$(EMACS) --batch -L . -L examples -l $< -- --no-hyphenation
 	cp /tmp/niori-test/$(notdir $@) $@
 
-examples/alice-in-wonderland.pdf: examples/alice-book.el examples/alice.txt $(ELS) $(ELC) | /tmp/niori-test
+examples/alice-in-wonderland.pdf: examples/alice-book.el examples/alice.txt examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $<
 	cp /tmp/niori-test/$(notdir $@) $@
 
-examples/alice-in-wonderland-pdfa.pdf: examples/alice-book.el examples/alice.txt $(ELS) $(ELC) | /tmp/niori-test
+examples/alice-in-wonderland-pdfa.pdf: examples/alice-book.el examples/alice.txt examples/font-utils.el $(ELS) $(ELC) | /tmp/niori-test
 	$(EMACS) --batch -L . -L examples -l $< -- --pdfa
 	cp /tmp/niori-test/$(notdir $@) $@
 
